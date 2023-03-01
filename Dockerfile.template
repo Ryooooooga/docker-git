@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS builder
+FROM debian:bullseye AS builder
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
     build-essential \
@@ -7,22 +7,23 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-instal
     gettext \
     libcurl4-gnutls-dev \
     libexpat1-dev \
-    libssl-dev \
-    libz-dev \
-    openssl
+    libssl1.1 \
+    libz-dev
 
-WORKDIR /git
+WORKDIR /work
 
 RUN curl -sL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" -o - | tar xvJ \
     && cd "git-${GIT_VERSION}" \
     && ./configure \
-    && make -j8 install DESTDIR="/usr/local"
+    && make -j8 install DESTDIR="/git"
 
-FROM ubuntu:22.04
+FROM debian:bullseye
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
     openssl
 
-COPY --from=builder /usr/local/ /usr/local/
+COPY --from=builder /git/usr/local/bin /usr/local/bin
+COPY --from=builder /git/usr/local/libexec /usr/local/libexec
+COPY --from=builder /git/usr/local/share /usr/local/share
 
 ENTRYPOINT [ "git" ]
